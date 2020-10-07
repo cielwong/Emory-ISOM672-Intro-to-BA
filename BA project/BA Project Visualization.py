@@ -4,8 +4,9 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 import seaborn as sns
 import matplotlib.pyplot as plt
-from pandas.api.types import is_string_dtype
+from pandas.api.types import is_string_dtype, is_numeric_dtype
 import numpy as np
+from scipy.stats import entropy
 
 #%%
 data = pd.read_csv("C:/Users/10331/OneDrive/Documents/GitHub/Emory-ISOM672-Intro-to-BA/BA project/hotel_bookings.csv")
@@ -13,72 +14,88 @@ data.shape
 data.describe()
 data.dtypes
 data.head()
+
 is_string_dtype(data["hotel"])
+
+data.isnull().sum()
+data.groupby("arrival_date_year").mean()
 
 #%% Feature Selection 1
 df = data[:]
-df.drop("arrival_date_year",axis =1, inplace = True)
+
+df = df.dropna(subset=["country"])
+df["children"] = df["children"].fillna(0)
+df["agent"] = df["agent"].fillna("no_agent")
+df.isnull().sum()
+
+#df.drop("arrival_date_year",axis =1, inplace = True)
+#df.drop("reservation_status_date",axis =1, inplace = True)
+#df.drop("arrival_date_day_of_month",axis =1, inplace = True)
+
 df.drop("reservation_status",axis =1, inplace = True)
-df.drop("reservation_status_date",axis =1, inplace = True)
 df.drop("company",axis =1, inplace = True)
 df.drop("assigned_room_type",axis =1, inplace = True)
 
-df.dtypes
+df["is_canceled"] = df["is_canceled"].astype(str)
+df["agent"] = df["agent"].astype(str)
+df["is_repeated_guest"] = df["is_repeated_guest"].astype(str)
 
-#%%
+df.dtypes
+df.value_counts()
+
+tmp = []
+for i in df.columns:
+    tmp.append(df[i].nunique())
+    
+#Unique count
+col = list(df.columns)
+unique_count = pd.DataFrame(list(zip(col, tmp)),columns = ["Columns","Unique_count"])
+unique_count
+
+#Histogram for numeric
 for i in range(len(df. columns)):
-    if is_string_dtype(df.iloc[:,i]):
-        sns.countplot(df.iloc[:,i])
-        plt.show
-    else:
+    if is_numeric_dtype(df.iloc[:,i]):
         sns.distplot(df.iloc[:,i],kde=False)
         plt.show()
         if sum(df.iloc[:,i]>(df.iloc[:,i].quantile(0.75)*2.5 - df.iloc[:,i].quantile(0.25)*1.5)) > 0:
             sns.distplot(df.iloc[:,i],kde=False)
             plt.ylim(0,10)
             plt.xlim(df.iloc[:,i].quantile(0.75),df.iloc[:,i].max()+5)
+            plt.axvline(2.8, 0,df.iloc[:,i].mean()+1.5*(df.iloc[:,i].max()-df.iloc[:,i].min()))
             plt.show()
 
-#%%
-num = list(df. columns)
-for i in list(df. columns):
-    for j in num:
-        if is_string_dtype(df.loc[:,i]):
-            sns.catplot(i,j,data = df)
-            plt.show
-        elif is_string_dtype(df.loc[:,j]):
-            sns.catplot(j,i,data = df)
-            plt.show
-        else:
-            sns.relplot(i,j,data = df)
-            plt.show()
-    del num[0]
+#country need regroup by regions
 
-#%%
-for i in list(df. columns):
-    sns.catplot("is_canceled",i,data = df)
-    plt.show()
+#%% information gain
 
-#%%
-viz1 = data.loc[:,["agent","arrival_date_year"]]
-viz2 = viz1.groupby(["agent","arrival_date_year"]).size()
-viz2 = viz2.reset_index()
-viz2.dtypes
-tmp = viz2[viz2.arrival_date_year == 2017]
-tmp.groupby(0).size()
-tmp = tmp[tmp[0] > 100]
-viz2 = viz2[viz2.agent.isin(tmp.agent)]
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.preprocessing import LabelEncoder
 
-tmp = viz2.groupby(["agent"]).sum()
-tmp = tmp[tmp[0] > 500]
-tmp = viz2[viz2.0 > ]
 
-#%%
+df_y = df.iloc[:,1].to_frame()
+df_x = df[:]
+df_x.drop("is_canceled",axis = 1)
 
-#Heatmap CM
-corr= df.corr()
+df_cat = df_x.loc[:,['hotel','arrival_date_month', 'meal','market_segment','distribution_channel',
+                     'reserved_room_type','deposit_type', 'customer_type','country']]
+x2 = df_x[["is_repeated_guest","agent", "arrival_date_week_number"]]
+x2 = x2.fillna(0)
+x2.isnull().sum()
+
+x1 = df_cat.apply(LabelEncoder().fit_transform)
+x = pd.concat([x1,x2],axis = 1)
+ 
+col = list(x.columns)
+ig = list(mutual_info_classif(x, df_y, discrete_features=True))
+
+info_gain = pd.DataFrame(list(zip(col, ig)),columns = ["Columns","Info_gain"]).sort_values(by=['Info_gain'],ascending=False)
+info_gain
+
+#%% Heatmap CM
+
+df2 = data.iloc[:, [1,2,7,8,9,10,11,17,18,21,25,27,28,29]]
+corr= df2.corr()
 mask = np.triu(np.ones_like(corr))
-
 
 plt.figure(figsize=(16, 16))
 ax = sns.heatmap(
@@ -99,23 +116,53 @@ ax.set_xticklabels(
     horizontalalignment = 'right'
     )
 
-#%%
+#%% Histogram plots
+for i in range(len(df. columns)):
+    if is_string_dtype(df.iloc[:,i]):
+        sns.countplot(df.iloc[:,i])
+        plt.show
+    else:
+        sns.distplot(df.iloc[:,i],kde=False)
+        plt.show()
+        if sum(df.iloc[:,i]>(df.iloc[:,i].quantile(0.75)*2.5 - df.iloc[:,i].quantile(0.25)*1.5)) > 0:
+            sns.distplot(df.iloc[:,i],kde=False)
+            plt.ylim(0,10)
+            plt.xlim(df.iloc[:,i].quantile(0.75),df.iloc[:,i].max()+5)
+            plt.show()
 
-from sklearn.datasets import fetch_20newsgroups
-from sklearn.feature_selection import mutual_info_classif
-from sklearn.feature_extraction.text import CountVectorizer
+#%% Scatter plots
+num = list(df. columns)
+for i in list(df. columns):
+    for j in num:
+        if is_string_dtype(df.loc[:,i]):
+            sns.catplot(i,j,data = df)
+            plt.show
+        elif is_string_dtype(df.loc[:,j]):
+            sns.catplot(j,i,data = df)
+            plt.show
+        else:
+            sns.relplot(i,j,data = df)
+            plt.show()
+    del num[0]
 
-categories = ['customer_type', 'market_segment']
-newsgroups_train = fetch_20newsgroups(subset='train',
-                                      categories=categories)
+#%% Scatter plots
+for i in list(df. columns):
+    sns.catplot("is_canceled",i,data = df)
+    plt.show()
 
-X, Y = df.iloc[:,2:], df.is_canceled
-cv = CountVectorizer(max_df=0.95, min_df=2,
-                                     max_features=10000,
-                                     stop_words='english')
-X_vec = cv.fit_transform(X)
+#%% Agent working on 
+viz1 = data.loc[:,["agent","arrival_date_year"]]
+viz2 = viz1.groupby(["agent","arrival_date_year"]).size()
+viz2 = viz2.reset_index()
+viz2.dtypes
+tmp = viz2[viz2.arrival_date_year == 2017]
+tmp.groupby(0).size()
+tmp = tmp[tmp[0] > 100]
+viz2 = viz2[viz2.agent.isin(tmp.agent)]
 
-res = dict(zip(cv.get_feature_names(),
-               mutual_info_classif(X_vec, Y, discrete_features=True)
-               ))
-print(res)
+tmp = viz2.groupby(["agent"]).sum()
+tmp = tmp[tmp[0] > 500]
+
+list(tmp.index)
+
+tmp = viz2[viz2.0 > ]
