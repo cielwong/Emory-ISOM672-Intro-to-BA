@@ -65,6 +65,11 @@ for i in range(len(df. columns)):
             plt.show()
 
 #country need regroup by regions
+#https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes/blob/master/all/all.csv
+pd.read_csv()
+
+for i in list(df["country"].unique()):
+    df[i] = 
 
 #%% information gain
 
