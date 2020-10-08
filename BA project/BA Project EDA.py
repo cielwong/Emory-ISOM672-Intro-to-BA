@@ -6,7 +6,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pandas.api.types import is_string_dtype, is_numeric_dtype
 import numpy as np
-from scipy.stats import entropy
+from scipy.stats import entropy, ttest_ind
 
 #%%
 data = pd.read_csv("C:/Users/10331/OneDrive/Documents/GitHub/Emory-ISOM672-Intro-to-BA/BA project/hotel_bookings.csv")
@@ -18,12 +18,13 @@ data.head()
 is_string_dtype(data["hotel"])
 
 data.isnull().sum()
-data.groupby("arrival_date_year").mean()
+data.groupby("arrival_date_year").agg(["mean","std"])
 
 #%% Feature Selection 1
 df = data[:]
 
-df = df.dropna(subset=["country"])
+#df = df.dropna(subset=["country"])
+df["country"] = df["country"].fillna("no_fill")
 df["children"] = df["children"].fillna(0)
 df["agent"] = df["agent"].fillna("no_agent")
 df.isnull().sum()
@@ -64,12 +65,23 @@ for i in range(len(df. columns)):
             plt.axvline(2.8, 0,df.iloc[:,i].mean()+1.5*(df.iloc[:,i].max()-df.iloc[:,i].min()))
             plt.show()
 
-#country need regroup by regions
+#country need regroup by regions (except the "big ones")
 #https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes/blob/master/all/all.csv
 pd.read_csv()
 
 for i in list(df["country"].unique()):
     df[i] = 
+    
+#adult,babies,children,adr
+
+#t-test for cancellation
+c1 = df.iloc[:,1][df["arrival_date_year"] == 2015]
+c2 = df.iloc[:,1][df["arrival_date_year"] == 2016]
+c3 = df.iloc[:,1][df["arrival_date_year"] == 2017]
+
+ttest_ind(c1, c2, equal_var = False)
+ttest_ind(c1, c3, equal_var = False)
+ttest_ind(c2, c3, equal_var = False)
 
 #%% information gain
 
@@ -83,7 +95,7 @@ df_x.drop("is_canceled",axis = 1)
 
 df_cat = df_x.loc[:,['hotel','arrival_date_month', 'meal','market_segment','distribution_channel',
                      'reserved_room_type','deposit_type', 'customer_type','country']]
-x2 = df_x[["is_repeated_guest","agent", "arrival_date_week_number"]]
+x2 = df_x[["is_repeated_guest","agent", "arrival_date_week_number","arrival_date_year"]]
 x2 = x2.fillna(0)
 x2.isnull().sum()
 
