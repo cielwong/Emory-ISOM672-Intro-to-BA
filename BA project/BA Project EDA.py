@@ -20,6 +20,10 @@ is_string_dtype(data["hotel"])
 data.isnull().sum()
 data.groupby("arrival_date_year").agg(["mean","std"])
 
+df.lead_time = (df["lead_time"])**0.5
+
+sns.distplot(df.lead_time)
+
 #%% Feature Selection 1
 df = data[:]
 
@@ -30,12 +34,12 @@ df["agent"] = df["agent"].fillna("no_agent")
 df.isnull().sum()
 
 #df.drop("arrival_date_year",axis =1, inplace = True)
-#df.drop("reservation_status_date",axis =1, inplace = True)
 #df.drop("arrival_date_day_of_month",axis =1, inplace = True)
 
 df.drop("reservation_status",axis =1, inplace = True)
 df.drop("company",axis =1, inplace = True)
 df.drop("assigned_room_type",axis =1, inplace = True)
+df.drop("reservation_status_date",axis =1, inplace = True)
 
 df["is_canceled"] = df["is_canceled"].astype(str)
 df["agent"] = df["agent"].astype(str)
@@ -62,7 +66,7 @@ for i in range(len(df. columns)):
             sns.distplot(df.iloc[:,i],kde=False)
             plt.ylim(0,10)
             plt.xlim(df.iloc[:,i].quantile(0.75),df.iloc[:,i].max()+5)
-            plt.axvline(2.8, 0,df.iloc[:,i].mean()+1.5*(df.iloc[:,i].max()-df.iloc[:,i].min()))
+            plt.axvline(2.8, 0, df.iloc[:,i].quantile(0.75)*2.5 - df.iloc[:,i].quantile(0.25)*1.5, color = "red")
             plt.show()
 
 #country need regroup by regions (except the "big ones")
@@ -74,7 +78,8 @@ for i in list(df["country"].unique()):
     
 #adult,babies,children,adr
 
-#t-test for cancellation
+#%% t-test for cancellation
+
 c1 = df.iloc[:,1][df["arrival_date_year"] == 2015]
 c2 = df.iloc[:,1][df["arrival_date_year"] == 2016]
 c3 = df.iloc[:,1][df["arrival_date_year"] == 2017]
@@ -162,24 +167,82 @@ for i in list(df. columns):
             plt.show()
     del num[0]
 
-#%% Scatter plots
+#%% Scatter plots against Y
 for i in list(df. columns):
     sns.catplot("is_canceled",i,data = df)
     plt.show()
 
 #%% Agent working on 
-viz1 = data.loc[:,["agent","arrival_date_year"]]
-viz2 = viz1.groupby(["agent","arrival_date_year"]).size()
-viz2 = viz2.reset_index()
-viz2.dtypes
-tmp = viz2[viz2.arrival_date_year == 2017]
+tmp1 = data.loc[:,["agent","arrival_date_year"]]
+tmp1["agent"] = tmp1["agent"].fillna(0)
+tmp1 = tmp1.groupby(["agent","arrival_date_year"]).size()
+tmp1 = tmp1.reset_index()
+tmp1.dtypes
+
+# >100 in 2017
+tmp = tmp1[tmp1.arrival_date_year == 2017]
 tmp.groupby(0).size()
 tmp = tmp[tmp[0] > 100]
-viz2 = viz2[viz2.agent.isin(tmp.agent)]
+tmp1 = tmp1[tmp1.agent.isin(tmp.agent)]
 
-tmp = viz2.groupby(["agent"]).sum()
+# >500
+tmp = tmp1.groupby(["agent"]).sum()
 tmp = tmp[tmp[0] > 500]
 
-list(tmp.index)
+tmp1 = data.loc[:,"agent"].to_frame()
+tmp1["agent"] = tmp1["agent"].fillna(0)
+tmp = tmp1[tmp1.isin(list(tmp.index))]
 
-tmp = viz2[viz2.0 > ]
+tmp.value_counts()
+tmp.isnull().sum()
+tmp["agent"] = tmp["agent"].fillna(0.1)
+
+df.agent = tmp
+
+tmp.value_counts()
+
+#%% Children Babies adults
+
+tmp = df.loc[:,["is_canceled","babies"]]
+tmp.groupby(["babies","is_canceled"]).size()
+df = df[df.babies != 9]
+df = df[df.babies != 10]
+df.loc[df["babies"]==2,"babies"] = 1
+
+tmp = df.loc[:,["is_canceled","children"]]
+tmp.groupby(["children","is_canceled"]).size()
+df = df[df.children != 10]
+df.loc[df["children"]==3,"children"] = 2
+
+tmp = df.loc[:,["is_canceled","adults"]]
+tmp.groupby(["adults","is_canceled"]).size()
+df.drop(df.loc[df['adults'] > 4].index, inplace=True)
+df.loc[df["adults"]==4,"adults"] = 3
+
+#%% stays_in_weekend_nights
+
+tmp = df.loc[:,["is_canceled","stays_in_weekend_nights"]]
+tmp.groupby(["stays_in_weekend_nights","is_canceled"]).size()
+tmp = tmp.groupby(["stays_in_weekend_nights","is_canceled"]).size().reset_index(name='count')
+a = tmp.groupby('stays_in_weekend_nights')['count'].transform('sum')
+tmp['count'] = tmp['count'].div(a)
+tmp
+
+#%%
+
+tmp = df.loc[:,["is_canceled","booking_changes"]]
+tmp.groupby(["booking_changes","is_canceled"]).size()
+tmp = tmp.groupby(["booking_changes","is_canceled"]).size().reset_index(name='count')
+a = tmp.groupby('booking_changes')['count'].transform('sum')
+tmp['count'] = tmp['count'].div(a)
+tmp
+
+tmp = df.loc[:,["is_canceled","previous_bookings_not_canceled"]]
+tmp.groupby(["previous_bookings_not_canceled","is_canceled"]).size()
+tmp = tmp.groupby(["days_in_waiting_list","is_canceled"]).size().reset_index(name='count')
+a = tmp.groupby('days_in_waiting_list')['count'].transform('sum')
+tmp['count'] = tmp['count'].div(a)
+tmp
+
+tmp = df.loc[:,["lead_time"]]
+tmp.groupby(["lead_time"]).size()/sum(tmp.count())
