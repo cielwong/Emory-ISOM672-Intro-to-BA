@@ -20,10 +20,6 @@ is_string_dtype(data["hotel"])
 data.isnull().sum()
 data.groupby("arrival_date_year").agg(["mean","std"])
 
-df.lead_time = (df["lead_time"])**0.5
-
-sns.distplot(df.lead_time)
-
 #%% Feature Selection 1
 df = data[:]
 
@@ -75,6 +71,11 @@ pd.read_csv()
 
 for i in list(df["country"].unique()):
     df[i] = 
+    
+# lead_time transform
+df.lead_time = (df["lead_time"])**0.5
+
+sns.distplot(df.lead_time)
     
 #adult,babies,children,adr
 
@@ -231,10 +232,10 @@ tmp
 #%%
 
 # Checking Percentages of is_canceled for each label
-tmp = df.loc[:,["is_canceled","previous_bookings_not_canceled"]]
-tmp.groupby(["previous_bookings_not_canceled","is_canceled"]).size()
-tmp = tmp.groupby(["days_in_waiting_list","is_canceled"]).size().reset_index(name='count')
-a = tmp.groupby('days_in_waiting_list')['count'].transform('sum')
+tmp = df.loc[:,["is_canceled","required_car_parking_spaces"]]
+tmp.groupby(["required_car_parking_spaces","is_canceled"]).size()
+tmp = tmp.groupby(["required_car_parking_spaces","is_canceled"]).size().reset_index(name='count')
+a = tmp.groupby('required_car_parking_spaces')['count'].transform('sum')
 tmp['count'] = tmp['count'].div(a)
 tmp
 
@@ -242,3 +243,5 @@ tmp
 tmp = df.loc[:,["lead_time"]]
 tmp.groupby(["lead_time"]).size()/sum(tmp.count())
 
+tmp = df.loc[:,["is_canceled","required_car_parking_spaces"]]
+tmp.groupby(["required_car_parking_spaces","is_canceled"]).size()
