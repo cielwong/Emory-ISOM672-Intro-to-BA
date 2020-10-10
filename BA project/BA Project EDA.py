@@ -232,10 +232,10 @@ tmp
 #%%
 
 # Checking Percentages of is_canceled for each label
-tmp = df.loc[:,["is_canceled","required_car_parking_spaces"]]
-tmp.groupby(["required_car_parking_spaces","is_canceled"]).size()
-tmp = tmp.groupby(["required_car_parking_spaces","is_canceled"]).size().reset_index(name='count')
-a = tmp.groupby('required_car_parking_spaces')['count'].transform('sum')
+tmp = df.loc[:,["is_canceled","adults"]]
+tmp.groupby(["adults","is_canceled"]).size()
+tmp = tmp.groupby(["adults","is_canceled"]).size().reset_index(name='count')
+a = tmp.groupby('adults')['count'].transform('sum')
 tmp['count'] = tmp['count'].div(a)
 tmp
 
@@ -243,5 +243,31 @@ tmp
 tmp = df.loc[:,["lead_time"]]
 tmp.groupby(["lead_time"]).size()/sum(tmp.count())
 
-tmp = df.loc[:,["is_canceled","required_car_parking_spaces"]]
-tmp.groupby(["required_car_parking_spaces","is_canceled"]).size()
+#%% Regions
+
+cc=pd.read_csv("C:/Users/10331/OneDrive/Documents/GitHub/Emory-ISOM672-Intro-to-BA/BA project/Region_Label.csv")
+cc.head()
+country_dict = dict(zip(cc["alpha-3"], cc["sub-region"]))
+
+tmp1 = data.loc[:,["country"]]
+tmp1["country"] = tmp1["country"].fillna("no_fill")
+tmp1 = tmp1.value_counts().reset_index()
+tmp1 = list(tmp1[tmp1[0] < 488]["country"])
+
+for key in list(country_dict.keys()):
+    if key in tmp1:
+        print(1)
+    else:
+        print(0)
+        del country_dict[key]
+        
+df.replace({"country": country_dict}, inplace = True)
+df.head()
+df["country"].value_counts()
+
+tmp1 = df.loc[:,["country"]]
+tmp1 = tmp1.value_counts().reset_index()
+tmp1 = list(tmp1[tmp1[0] < 488]["country"])
+df[df.country.isin(tmp1)] = "others"
+
+df["country"].value_counts()
