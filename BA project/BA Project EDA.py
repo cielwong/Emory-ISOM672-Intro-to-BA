@@ -230,13 +230,7 @@ tmp
 
 #%%
 
-tmp = df.loc[:,["is_canceled","booking_changes"]]
-tmp.groupby(["booking_changes","is_canceled"]).size()
-tmp = tmp.groupby(["booking_changes","is_canceled"]).size().reset_index(name='count')
-a = tmp.groupby('booking_changes')['count'].transform('sum')
-tmp['count'] = tmp['count'].div(a)
-tmp
-
+# Checking Percentages of is_canceled for each label
 tmp = df.loc[:,["is_canceled","previous_bookings_not_canceled"]]
 tmp.groupby(["previous_bookings_not_canceled","is_canceled"]).size()
 tmp = tmp.groupby(["days_in_waiting_list","is_canceled"]).size().reset_index(name='count')
@@ -244,5 +238,7 @@ a = tmp.groupby('days_in_waiting_list')['count'].transform('sum')
 tmp['count'] = tmp['count'].div(a)
 tmp
 
+#Checking the distribution of the column
 tmp = df.loc[:,["lead_time"]]
 tmp.groupby(["lead_time"]).size()/sum(tmp.count())
+
