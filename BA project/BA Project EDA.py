@@ -147,6 +147,7 @@ for i in range(len(df. columns)):
             sns.distplot(df.iloc[:,i],kde=False)
             plt.ylim(0,10)
             plt.xlim(df.iloc[:,i].quantile(0.75),df.iloc[:,i].max()+5)
+            plt.axvline(2.8, 0, df.iloc[:,i].quantile(0.75)*2.5 - df.iloc[:,i].quantile(0.25)*1.5, color = "red")
             plt.show()
 
 #%% Scatter plots
@@ -228,10 +229,10 @@ tmp
 #%%
 
 # Checking Percentages of is_canceled for each label
-tmp = df.loc[:,["is_canceled","adults"]]
-tmp.groupby(["adults","is_canceled"]).size()
-tmp = tmp.groupby(["adults","is_canceled"]).size().reset_index(name='count')
-a = tmp.groupby('adults')['count'].transform('sum')
+tmp = df.loc[:,["is_canceled","previous_bookings_not_canceled"]]
+tmp.groupby(["previous_bookings_not_canceled","is_canceled"]).size()
+tmp = tmp.groupby(["days_in_waiting_list","is_canceled"]).size().reset_index(name='count')
+a = tmp.groupby('days_in_waiting_list')['count'].transform('sum')
 tmp['count'] = tmp['count'].div(a)
 tmp
 
