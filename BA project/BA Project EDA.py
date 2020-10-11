@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from pandas.api.types import is_string_dtype, is_numeric_dtype
 import numpy as np
 from scipy.stats import entropy, ttest_ind
+from sklearn.preprocessing import LabelEncoder
 
 #%%
 data = pd.read_csv("C:/Users/10331/OneDrive/Documents/GitHub/Emory-ISOM672-Intro-to-BA/BA project/hotel_bookings.csv")
@@ -22,9 +23,9 @@ data.groupby("arrival_date_year").agg(["mean","std"])
 
 #%% Feature Selection 1
 df = data[:]
+df["country"] = df["country"].fillna("no_fill")
 
 #df = df.dropna(subset=["country"])
-df["country"] = df["country"].fillna("no_fill")
 df["children"] = df["children"].fillna(0)
 df["agent"] = df["agent"].fillna("no_agent")
 df.isnull().sum()
@@ -67,17 +68,12 @@ for i in range(len(df. columns)):
 
 #country need regroup by regions (except the "big ones")
 #https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes/blob/master/all/all.csv
-pd.read_csv()
 
-for i in list(df["country"].unique()):
-    df[i] = 
-    
+
 # lead_time transform
 df.lead_time = (df["lead_time"])**0.5
-
+# np.log()
 sns.distplot(df.lead_time)
-    
-#adult,babies,children,adr
 
 #%% t-test for cancellation
 
@@ -249,8 +245,7 @@ cc=pd.read_csv("C:/Users/10331/OneDrive/Documents/GitHub/Emory-ISOM672-Intro-to-
 cc.head()
 country_dict = dict(zip(cc["alpha-3"], cc["sub-region"]))
 
-tmp1 = data.loc[:,["country"]]
-tmp1["country"] = tmp1["country"].fillna("no_fill")
+tmp1 = df.loc[:,["country"]]
 tmp1 = tmp1.value_counts().reset_index()
 tmp1 = list(tmp1[tmp1[0] < 488]["country"])
 
@@ -268,6 +263,91 @@ df["country"].value_counts()
 tmp1 = df.loc[:,["country"]]
 tmp1 = tmp1.value_counts().reset_index()
 tmp1 = list(tmp1[tmp1[0] < 488]["country"])
-df[df.country.isin(tmp1)] = "others"
+tmp = df["country"].to_frame()
+tmp[tmp.country.isin(tmp1)] = "others"
+df["country"] = tmp
 
 df["country"].value_counts()
+
+#%% adr
+
+tmp = df.loc[:,["arrival_date_year","arrival_date_month","lead_time","adr"]]
+tmp.dtypes
+tmp.head()
+
+tmp1 = tmp["arrival_date_month"].to_frame()
+cleanup_categ =  {"January": "1", "February": "2", "March": "3", "April": "4",
+                 "May": "5", "June": "6", "July": "7", "August": "8", "September": "9", 
+                 "October": "10", "November": "11", "December": "12"}
+tmp1.replace(cleanup_categ, inplace = True)
+tmp1.head(10)
+tmp1["arrival_date_month"] = tmp1["arrival_date_month"].astype(int)
+tmp.arrival_date_month = tmp1.arrival_date_month
+
+tmp.lead_time = tmp["lead_time"]//7
+month = tmp["lead_time"]//4
+year = month//12
+tmp.arrival_date_year = tmp.arrival_date_year - year
+month = month%12
+tmp.arrival_date_month = tmp.arrival_date_month - month
+
+for i in range(len(tmp)):
+    if tmp.iloc[i,1] < 1:
+        tmp.iloc[i,1] = 12 + tmp.iloc[i,1]
+        tmp.iloc[i,0] = tmp.iloc[i,0] - 1
+        
+tmp = tmp.loc[:,["arrival_date_year","arrival_date_month"]]
+tmp.groupby(["arrival_date_year","arrival_date_month"]).size()
+
+df.arrival_date_year = tmp.arrival_date_year
+df.arrival_date_month = tmp.arrival_date_month
+
+df = df[df["arrival_date_year"]!=2013]
+for j in [1,3,4,4,4,5,6,6,6,7]:
+    for i in range(len(df)):
+        if df.iloc[i,3] == 2014:
+            if df.iloc[i,4] == j:
+                df = df.drop(df.index[i])
+                break
+df = df[df["adr"] != 0]
+df = df[df["adr"]<500]
+
+tmp = df.loc[:,["arrival_date_year","arrival_date_month","adr"]]
+tmp1 = tmp.loc[:,["arrival_date_year","arrival_date_month"]]
+tmp1.groupby(["arrival_date_year","arrival_date_month"]).size()
+
+tmp1 = tmp.groupby(["arrival_date_year","arrival_date_month"]).mean().reset_index()
+tmp1
+
+tmp1.arrival_date_month = tmp1.arrival_date_month + 1
+for i in range(len(tmp1)):
+    if tmp1.iloc[i,1] == 13:
+        tmp1.iloc[i,1] = 1
+        tmp1.iloc[i,0] = tmp1.iloc[i,0] + 1
+tmp1 = tmp1[:-1]
+
+for j in [8,8,8,8,8,8,8,8,8,8]:
+    for i in range(len(df)):
+        if df.iloc[i,3] == 2014:
+            if df.iloc[i,4] == j:
+                df = df.drop(df.index[i])
+                break
+tmp = df.loc[:,["arrival_date_year","arrival_date_month","adr"]]
+
+for i in [2014,2015,2016,2017]:
+    for j in [1,2,3,4,5,6,7,8,9,10,11,12]:
+        if (i == 2014)&(j < 9):
+            print(0)
+            continue
+        elif (i == 2017) & (j > 8):
+            print(1)
+            continue
+        avg = float(tmp1.loc[(tmp1["arrival_date_year"]==i)&(tmp1["arrival_date_month"]==j),"adr"])
+        tmp.loc[(tmp["arrival_date_year"]==i)&(tmp["arrival_date_month"]==j),"adr"] = (tmp.loc[(tmp["arrival_date_year"]==i)&(tmp["arrival_date_month"]==j),"adr"].to_frame() - avg)/avg
+        
+tmp.isnull().sum()
+tmp.arrival_date_year.value_counts()
+tmp.arrival_date_month.value_counts()
+tmp.adr.value_counts()
+
+sns.distplot((tmp.adr)**0.33)
