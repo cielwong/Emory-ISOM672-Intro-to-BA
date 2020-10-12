@@ -110,9 +110,13 @@ ig = list(mutual_info_classif(x, df_y, discrete_features=True))
 info_gain = pd.DataFrame(list(zip(col, ig)),columns = ["Columns","Info_gain"]).sort_values(by=['Info_gain'],ascending=False)
 info_gain
 
+df = df[df["adr"] < 3000]
+df["adr"] = df["adr"]**0.33
+sns.displot(data = df, x = "adr", hue = "arrival_date_year")
+
 #%% Heatmap CM
 
-df2 = data.iloc[:, [1,2,7,8,9,10,11,17,18,21,25,27,28,29]]
+df2 = data[:]
 corr= df2.corr()
 mask = np.triu(np.ones_like(corr))
 
@@ -229,10 +233,10 @@ tmp
 #%%
 
 # Checking Percentages of is_canceled for each label
-tmp = df.loc[:,["is_canceled","previous_bookings_not_canceled"]]
-tmp.groupby(["previous_bookings_not_canceled","is_canceled"]).size()
-tmp = tmp.groupby(["days_in_waiting_list","is_canceled"]).size().reset_index(name='count')
-a = tmp.groupby('days_in_waiting_list')['count'].transform('sum')
+tmp = df.loc[:,["is_canceled","stays_in_week_nights"]]
+tmp.groupby(["stays_in_week_nights","is_canceled"]).size()
+tmp = tmp.groupby(["stays_in_week_nights","is_canceled"]).size().reset_index(name='count')
+a = tmp.groupby('stays_in_week_nights')['count'].transform('sum')
 tmp['count'] = tmp['count'].div(a)
 tmp
 
